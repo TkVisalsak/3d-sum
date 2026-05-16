@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1-Hectare Tomato Farm</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+    #canvas-container { width: 100vw; height: 100vh; }
+
+    #ui {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card {
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #fff;
+      min-width: 210px;
+    }
+
+    .card h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #f97316;
+      margin-bottom: 8px;
+    }
+
+    .stat { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+    .stat span:last-child { color: #86efac; font-weight: 600; }
+
+    #controls-hint {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 8px 20px;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      z-index: 10;
+    }
+
+    #season-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 10;
+      background: rgba(249,115,22,0.85);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s;
+    }
+    #season-btn:hover { background: rgba(234,88,12,0.95); }
+
+    #season-label {
+      position: fixed;
+      top: 58px;
+      right: 16px;
+      z-index: 10;
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    #crop-btn {
+      position: fixed;
+      top: 82px;
+      right: 16px;
+      z-index: 10;
+      background: rgba(34,139,34,0.85);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s;
+    }
+    #crop-btn:hover { filter: brightness(1.15); }
+    #crop-label {
+      position: fixed;
+      top: 124px;
+      right: 16px;
+      z-index: 10;
+      color: rgba(255,255,255,0.6);
+      font-size: 12px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+<div id="canvas-container"></div>
+
+<div id="ui">
+  <div class="card">
+    <h2>Farm Overview</h2>
+    <div class="stat"><span>Total Area</span><span>1 Hectare</span></div>
+    <div class="stat"><span>Dimensions</span><span>100m × 100m</span></div>
+    <div class="stat"><span>Plant Rows</span><span>62 rows</span></div>
+    <div class="stat"><span>Plants / Row</span><span>~160</span></div>
+    <div class="stat"><span>Total Plants</span><span>9,920</span></div>
+  </div>
+  <div class="card">
+    <h2>Crop Status</h2>
+    <div class="stat"><span>Variety</span><span>Roma VF</span></div>
+    <div class="stat"><span>Planted</span><span>Mar 2026</span></div>
+    <div class="stat"><span>Growth Stage</span><span id="stage">Fruiting</span></div>
+    <div class="stat"><span>Barn</span><span>Open 22m × 18m</span></div>
+    <div class="stat"><span>Sensors</span><span>9 Active (NPK/EC/pH)</span></div>
+    <div class="stat"><span>Irrigation</span><span>Supply + Fert Ring</span></div>
+    <div class="stat"><span>Pond</span><span>18m × 12m</span></div>
+    <div class="stat"><span>Lake</span><span>52m × 26m (source)</span></div>
+    <div class="stat"><span>Control Junction</span><span>Y-Valve · Isolated</span></div>
+    <div class="stat"><span>Water Storage</span><span>Auto-Mix + Fert Tank</span></div>
+    <div class="stat"><span>Est. Yield</span><span>~62 tonnes</span></div>
+  </div>
+  <div class="card">
+    <h2>Sensor Monitor</h2>
+    <div style="color:#ff5500;font-size:11px;font-weight:600;margin:4px 0 2px">NPK — Soil Nutrients</div>
+    <div class="stat"><span>Nitrogen (N)</span><span id="s-n">45 ppm</span></div>
+    <div class="stat"><span>Phosphorus (P)</span><span id="s-p">28 ppm</span></div>
+    <div class="stat"><span>Potassium (K)</span><span id="s-k">62 ppm</span></div>
+    <div style="color:#ffcc00;font-size:11px;font-weight:600;margin:6px 0 2px">EC — Conductivity</div>
+    <div class="stat"><span>EC Level</span><span id="s-ec">2.1 mS/cm</span></div>
+    <div class="stat"><span>Soil Temp</span><span id="s-temp">24.3 °C</span></div>
+    <div style="color:#4499ff;font-size:11px;font-weight:600;margin:6px 0 2px">pH — Acidity</div>
+    <div class="stat"><span>pH Level</span><span id="s-ph">6.80</span></div>
+    <div class="stat"><span>Status</span><span id="s-status" style="color:#00ff88">Optimal</span></div>
+  </div>
+</div>
+
+<button id="season-btn" onclick="cycleSeason()">Change Season</button>
+<div id="season-label">Season: <span id="season-name">Summer</span></div>
+
+<button id="crop-btn" onclick="toggleCrops()">Hide Crops</button>
+<div id="crop-label">Crops: <span id="crop-status">Visible</span></div>
+
+<div id="controls-hint">🖱 Drag to orbit &nbsp;|&nbsp; Scroll to zoom &nbsp;|&nbsp; Right-drag to pan</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+
+// ─── Scene setup ──────────────────────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.8;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.5, 5000);
+camera.position.set(0, 40, 110);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0, 0);
+controls.maxPolarAngle = Math.PI / 2 - 0.02;
+controls.minDistance = 15;
+controls.maxDistance = 280;
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.update();
+
+// ─── Sky & Sun ────────────────────────────────────────────────────────────────
+const sky = new Sky();
+sky.scale.setScalar(4500);
+scene.add(sky);
+
+const sun = new THREE.Vector3();
+const skyUniforms = sky.material.uniforms;
+skyUniforms['turbidity'].value = 4;
+skyUniforms['rayleigh'].value = 2.0;
+skyUniforms['mieCoefficient'].value = 0.005;
+skyUniforms['mieDirectionalG'].value = 0.85;
+
+function setSun(elevation, azimuth) {
+  const phi = THREE.MathUtils.degToRad(90 - elevation);
+  const theta = THREE.MathUtils.degToRad(azimuth);
+  sun.setFromSphericalCoords(1, phi, theta);
+  skyUniforms['sunPosition'].value.copy(sun);
+  dirLight.position.copy(sun).multiplyScalar(200);
+}
+
+// ─── Lighting ─────────────────────────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0xfff8e7, 0.5);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xfff4d6, 2.2);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.left = -130;
+dirLight.shadow.camera.right = 130;
+dirLight.shadow.camera.top = 130;
+dirLight.shadow.camera.bottom = -130;
+dirLight.shadow.camera.near = 10;
+dirLight.shadow.camera.far = 400;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+
+setSun(45, 180);
+
+// ─── Ground ───────────────────────────────────────────────────────────────────
+const FARM_W = 100, FARM_D = 100;
+
+const groundGeo = new THREE.PlaneGeometry(FARM_W + 80, FARM_D + 80, 1, 1);
+const groundMat = new THREE.MeshLambertMaterial({ color: 0x7a5c2e });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Tilled soil rows (darker strips)
+const soilRowGeo = new THREE.PlaneGeometry(FARM_W - 4, 1.0);
+const soilMat = new THREE.MeshLambertMaterial({ color: 0x5a3e1b });
+const ROW_SPACING = 1.6;
+const NUM_ROWS = Math.floor(FARM_D / ROW_SPACING);
+const START_Z = -(NUM_ROWS / 2) * ROW_SPACING;
+
+for (let i = 0; i < NUM_ROWS; i++) {
+  const strip = new THREE.Mesh(soilRowGeo, soilMat);
+  strip.rotation.x = -Math.PI / 2;
+  strip.position.set(0, 0.01, START_Z + i * ROW_SPACING);
+  scene.add(strip);
+}
+
+// ─── Fence ────────────────────────────────────────────────────────────────────
+const fencePostGeo = new THREE.BoxGeometry(0.15, 1.5, 0.15);
+const fencePostMat = new THREE.MeshLambertMaterial({ color: 0x8b6914 });
+const fenceWireGeo = new THREE.BoxGeometry(1, 0.05, 0.05);
+const fenceWireMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
+
+function addFenceSide(x1, z1, x2, z2) {
+  const dx = x2 - x1, dz = z2 - z1;
+  const len = Math.sqrt(dx * dx + dz * dz);
+  const steps = Math.ceil(len / 4);
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const post = new THREE.Mesh(fencePostGeo, fencePostMat);
+    post.position.set(x1 + dx * t, 0.75, z1 + dz * t);
+    post.castShadow = true;
+    scene.add(post);
+  }
+  // Wire rails
+  for (let rail = 0; rail < 2; rail++) {
+    const wire = new THREE.Mesh(
+      new THREE.BoxGeometry(len, 0.06, 0.06),
+      fenceWireMat
+    );
+    wire.position.set((x1 + x2) / 2, 0.5 + rail * 0.6, (z1 + z2) / 2);
+    const angle = Math.atan2(dz, dx);
+    wire.rotation.y = -angle;
+    scene.add(wire);
+  }
+}
+
+const hw = FARM_W / 2 + 1, hd = FARM_D / 2 + 1;
+addFenceSide(-hw, -hd, hw, -hd);
+addFenceSide(hw, -hd, hw, hd);
+addFenceSide(hw, hd, -hw, hd);
+addFenceSide(-hw, hd, -hw, -hd);
+
+// ─── Tomato plants (instanced) ─────────────────────────────────────────────────
+const PLANTS_PER_ROW = 160;
+const TOTAL_PLANTS = NUM_ROWS * PLANTS_PER_ROW;
+const PLANT_SPACING = (FARM_W - 4) / PLANTS_PER_ROW;
+
+// Stem
+const stemGeo = new THREE.CylinderGeometry(0.03, 0.05, 0.7, 5);
+const stemMat = new THREE.MeshLambertMaterial({ color: 0x4a7c20 });
+const stemMesh = new THREE.InstancedMesh(stemGeo, stemMat, TOTAL_PLANTS);
+stemMesh.castShadow = true;
+scene.add(stemMesh);
+
+// Foliage ball
+const leafGeo = new THREE.SphereGeometry(0.28, 6, 5);
+const leafMat = new THREE.MeshLambertMaterial({ color: 0x3a8c20 });
+const leafMesh = new THREE.InstancedMesh(leafGeo, leafMat, TOTAL_PLANTS);
+leafMesh.castShadow = true;
+scene.add(leafMesh);
+
+// Tomatoes
+const tomatoGeo = new THREE.SphereGeometry(0.07, 6, 5);
+const tomatoMat = new THREE.MeshLambertMaterial({ color: 0xe8281a });
+const tomatoMesh = new THREE.InstancedMesh(tomatoGeo, tomatoMat, TOTAL_PLANTS * 3);
+tomatoMesh.castShadow = false;
+scene.add(tomatoMesh);
+
+const dummy = new THREE.Object3D();
+const startX = -(FARM_W / 2 - 2);
+
+let plantIdx = 0, tomatoIdx = 0;
+for (let row = 0; row < NUM_ROWS; row++) {
+  const z = START_Z + row * ROW_SPACING;
+  for (let col = 0; col < PLANTS_PER_ROW; col++) {
+    const x = startX + col * PLANT_SPACING;
+    const jx = (Math.random() - 0.5) * 0.08;
+    const jz = (Math.random() - 0.5) * 0.08;
+    const h = 0.55 + Math.random() * 0.3;
+
+    // Stem
+    dummy.position.set(x + jx, h / 2, z + jz);
+    dummy.scale.set(1, h / 0.7, 1);
+    dummy.rotation.set(0, 0, 0);
+    dummy.updateMatrix();
+    stemMesh.setMatrixAt(plantIdx, dummy.matrix);
+
+    // Foliage
+    dummy.position.set(x + jx, h + 0.18, z + jz);
+    dummy.scale.set(1 + Math.random() * 0.3, 1, 1 + Math.random() * 0.3);
+    dummy.updateMatrix();
+    leafMesh.setMatrixAt(plantIdx, dummy.matrix);
+
+    // 3 tomatoes per plant
+    for (let t = 0; t < 3; t++) {
+      const angle = (t / 3) * Math.PI * 2 + Math.random() * 0.5;
+      const r = 0.18 + Math.random() * 0.1;
+      dummy.position.set(
+        x + jx + Math.cos(angle) * r,
+        h - 0.05 + Math.random() * 0.2,
+        z + jz + Math.sin(angle) * r
+      );
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      tomatoMesh.setMatrixAt(tomatoIdx++, dummy.matrix);
+    }
+
+    plantIdx++;
+  }
+}
+stemMesh.instanceMatrix.needsUpdate = true;
+leafMesh.instanceMatrix.needsUpdate = true;
+tomatoMesh.instanceMatrix.needsUpdate = true;
+
+// ─── Irrigation drip lines ────────────────────────────────────────────────────
+const drip_mat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+for (let row = 0; row < NUM_ROWS; row += 2) {
+  const z = START_Z + row * ROW_SPACING;
+  const drip = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.025, 0.025, FARM_W - 4, 4),
+    drip_mat
+  );
+  drip.rotation.z = Math.PI / 2;
+  drip.position.set(0, 0.05, z);
+  scene.add(drip);
+}
+
+// Main irrigation pipe (header)
+const mainPipeGeo = new THREE.CylinderGeometry(0.07, 0.07, FARM_D, 6);
+const mainPipeMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+const mainPipe = new THREE.Mesh(mainPipeGeo, mainPipeMat);
+mainPipe.position.set(-(FARM_W / 2 - 0.5), 0.1, 0);
+scene.add(mainPipe);
+
+// ─── Farm buildings ───────────────────────────────────────────────────────────
+function addBox(w, h, d, color, x, y, z, ry = 0) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshLambertMaterial({ color })
+  );
+  mesh.position.set(x, y, z);
+  mesh.rotation.y = ry;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  return mesh;
+}
+
+// ─── Open Space Barn ─────────────────────────────────────────────────────────
+{
+  const BW = 22, BD = 18, BH = 7.5, PEAK = 5;
+  const BX = hw + 22, BZ = 0;
+
+  const woodDark = new THREE.MeshLambertMaterial({ color: 0x4a1f06 });
+  const woodMed  = new THREE.MeshLambertMaterial({ color: 0x7a3a10 });
+  const roofMat2 = new THREE.MeshLambertMaterial({ color: 0x6e1212 });
+  const wallBarn = new THREE.MeshLambertMaterial({ color: 0x8b3510 });
+  const concrete = new THREE.MeshLambertMaterial({ color: 0xc0aa88 });
+  const hay      = new THREE.MeshLambertMaterial({ color: 0xe0b828 });
+
+  function barnMesh(geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.rotation.set(rx, ry, rz);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    scene.add(m);
+    return m;
+  }
+
+  // Concrete foundation slab
+  barnMesh(new THREE.BoxGeometry(BW + 1.5, 0.22, BD + 1.5), concrete, BX, 0.11, BZ);
+
+  // Solid back wall (+X side)
+  barnMesh(new THREE.BoxGeometry(0.4, BH, BD), wallBarn, BX + BW / 2 - 0.2, BH / 2, BZ);
+
+  // Solid left and right partial side walls (lower half only, open above)
+  for (const zSide of [-BD / 2, BD / 2]) {
+    barnMesh(new THREE.BoxGeometry(BW * 0.35, BH * 0.45, 0.35), wallBarn,
+      BX - BW * 0.325, BH * 0.225, BZ + zSide);
+    barnMesh(new THREE.BoxGeometry(BW * 0.35, BH * 0.45, 0.35), wallBarn,
+      BX + BW * 0.325, BH * 0.225, BZ + zSide);
+  }
+
+  // 8 vertical support posts: corners + mid-points on each side
+  const postGeo = new THREE.CylinderGeometry(0.22, 0.28, BH, 8);
+  for (const zp of [-BD / 2, 0, BD / 2]) {
+    for (const xp of [-BW / 2, BW / 2]) {
+      barnMesh(postGeo, woodDark, BX + xp, BH / 2, BZ + zp);
+    }
+  }
+
+  // Horizontal cross-beams (span width at each post Z position)
+  for (const zp of [-BD / 2, 0, BD / 2]) {
+    barnMesh(new THREE.BoxGeometry(BW + 0.6, 0.32, 0.32), woodDark, BX, BH, BZ + zp);
+    // Mid-height rail
+    barnMesh(new THREE.BoxGeometry(BW + 0.4, 0.2, 0.2), woodMed, BX, BH * 0.48, BZ + zp);
+  }
+
+  // Longitudinal beams along depth (both sides at top)
+  for (const xp of [-BW / 2, BW / 2]) {
+    barnMesh(new THREE.BoxGeometry(0.3, 0.3, BD + 0.6), woodDark, BX + xp, BH, BZ);
+  }
+
+  // Diagonal braces on open front face (X shape)
+  {
+    const diagLen = Math.sqrt(BW ** 2 + BH ** 2) * 0.5;
+    const diagAng = Math.atan2(BH, BW);
+    barnMesh(new THREE.BoxGeometry(diagLen, 0.18, 0.18), woodMed,
+      BX - BW * 0.25, BH * 0.5, BZ - BD / 2, 0, 0, diagAng);
+    barnMesh(new THREE.BoxGeometry(diagLen, 0.18, 0.18), woodMed,
+      BX + BW * 0.25, BH * 0.5, BZ - BD / 2, 0, 0, -diagAng);
+  }
+
+  // Ridge beam
+  barnMesh(new THREE.BoxGeometry(0.38, 0.38, BD + 2.5), woodDark, BX, BH + PEAK, BZ);
+
+  // Roof rafters (every BD/4 along Z)
+  const slant = Math.sqrt((BW / 2) ** 2 + PEAK ** 2);
+  const pitch = Math.atan2(PEAK, BW / 2);
+  const rafterGeo = new THREE.BoxGeometry(slant + 0.8, 0.22, 0.22);
+  for (const zp of [-BD / 2, -BD / 4, 0, BD / 4, BD / 2]) {
+    barnMesh(rafterGeo, woodMed, BX - BW / 4, BH + PEAK / 2, BZ + zp, 0, 0, pitch);
+    barnMesh(rafterGeo, woodMed, BX + BW / 4, BH + PEAK / 2, BZ + zp, 0, 0, -pitch);
+  }
+
+  // Roof panels (two halves — gabled)
+  const roofGeo = new THREE.BoxGeometry(slant + 2, 0.32, BD + 3);
+  barnMesh(roofGeo, roofMat2, BX - BW / 4, BH + PEAK / 2, BZ, 0, 0,  pitch);
+  barnMesh(roofGeo, roofMat2, BX + BW / 4, BH + PEAK / 2, BZ, 0, 0, -pitch);
+
+  // Gable end triangle boards (back wall)
+  const gableL = new THREE.Mesh(
+    new THREE.BoxGeometry(slant, 0.38, 0.3), wallBarn);
+  gableL.position.set(BX - BW / 4, BH + PEAK / 2, BZ + BD / 2 - 0.15);
+  gableL.rotation.z = pitch;
+  gableL.castShadow = true;
+  scene.add(gableL);
+  const gableR = new THREE.Mesh(
+    new THREE.BoxGeometry(slant, 0.38, 0.3), wallBarn);
+  gableR.position.set(BX + BW / 4, BH + PEAK / 2, BZ + BD / 2 - 0.15);
+  gableR.rotation.z = -pitch;
+  gableR.castShadow = true;
+  scene.add(gableR);
+
+  // Loft platform (upper storage shelf inside back section)
+  const loftY = BH * 0.52;
+  barnMesh(new THREE.BoxGeometry(BW - 2, 0.25, BD * 0.38), new THREE.MeshLambertMaterial({ color: 0x7a4010 }),
+    BX, loftY, BZ + BD * 0.31);
+  // Loft ladder
+  barnMesh(new THREE.BoxGeometry(0.08, loftY, 0.08), woodMed, BX - BW / 2 + 1.2, loftY / 2, BZ + BD * 0.12);
+  barnMesh(new THREE.BoxGeometry(0.08, loftY, 0.08), woodMed, BX - BW / 2 + 2,   loftY / 2, BZ + BD * 0.12);
+  for (let r = 0; r < 5; r++) {
+    barnMesh(new THREE.BoxGeometry(0.75, 0.07, 0.07), woodMed,
+      BX - BW / 2 + 1.6, loftY * (0.15 + r * 0.17), BZ + BD * 0.12);
+  }
+
+  // Hay bales inside
+  const baleGeo = new THREE.BoxGeometry(1.2, 0.8, 0.85);
+  const balePositions = [
+    [BX - BW / 2 + 1.5, 0.4,  BZ + BD / 2 - 2],
+    [BX - BW / 2 + 3,   0.4,  BZ + BD / 2 - 2],
+    [BX - BW / 2 + 1.5, 1.22, BZ + BD / 2 - 2],
+    [BX - BW / 2 + 1.5, 0.4,  BZ + BD / 2 - 3.5],
+    [BX + BW / 2 - 1.5, 0.4,  BZ + BD / 2 - 2],
+    [BX + BW / 2 - 3,   0.4,  BZ + BD / 2 - 2],
+    [BX + BW / 2 - 1.5, 1.22, BZ + BD / 2 - 2],
+    [BX + BW / 2 - 1.5, 0.4,  BZ + BD / 2 - 3.5],
+  ];
+  for (const [x, y, z] of balePositions) {
+    barnMesh(baleGeo, hay, x, y, z);
+  }
+
+  // Barn sign post at entrance
+  barnMesh(new THREE.BoxGeometry(0.15, 4.5, 0.15), woodDark, BX - BW / 2 - 0.5, 2.25, BZ - BD / 2 - 0.5);
+  barnMesh(new THREE.BoxGeometry(3.5, 0.9, 0.12), new THREE.MeshLambertMaterial({ color: 0x9b4420 }),
+    BX - BW / 2 + 1.25, 4.3, BZ - BD / 2 - 0.5);
+
+  // Dirt path from road to barn entrance
+  barnMesh(new THREE.PlaneGeometry(5, hw + 22 - (hw + 4)),
+    new THREE.MeshLambertMaterial({ color: 0x9e8060 }),
+    (hw + 4 + BX - BW / 2) / 2, 0.03, BZ - BD / 2 - 1, -Math.PI / 2, Math.PI / 2, 0);
+}
+
+// Greenhouse
+addBox(20, 4, 30, 0xd0eeff, hw - 12, 2, -hd - 17);
+// Greenhouse frame
+addBox(21, 0.2, 0.2, 0x888888, hw - 12, 4, -hd - 2);
+addBox(21, 0.2, 0.2, 0x888888, hw - 12, 4, -hd - 32);
+
+// Water tank
+const tankGeo = new THREE.CylinderGeometry(2, 2, 5, 12);
+const tank = new THREE.Mesh(tankGeo, new THREE.MeshLambertMaterial({ color: 0x2255aa }));
+tank.position.set(-hw + 8, 2.5, hd + 5);
+tank.castShadow = true;
+scene.add(tank);
+// Tank stand legs
+for (let i = 0; i < 4; i++) {
+  const angle = (i / 4) * Math.PI * 2;
+  addBox(0.2, 3, 0.2, 0x555555, -hw + 8 + Math.cos(angle) * 1.5, 1.5, hd + 5 + Math.sin(angle) * 1.5);
+}
+
+// Dirt access road
+const roadGeo = new THREE.PlaneGeometry(6, FARM_D + 60);
+const road = new THREE.Mesh(roadGeo, new THREE.MeshLambertMaterial({ color: 0x9e8060 }));
+road.rotation.x = -Math.PI / 2;
+road.position.set(hw + 4, 0.02, 0);
+scene.add(road);
+
+// ─── Soil Sensors (NPK · EC · pH) ───────────────────────────────────────────
+{
+  const s_zones = [-35, 0, 35];
+
+  // Sprite label helper (billboard — always faces camera)
+  function s_makeLabel(text, hexColor) {
+    const cv = document.createElement('canvas');
+    cv.width = 160; cv.height = 56;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0.82)';
+    ctx.beginPath();
+    ctx.roundRect(2, 2, 156, 52, 10);
+    ctx.fill();
+    ctx.strokeStyle = hexColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(3, 3, 154, 50, 9);
+    ctx.stroke();
+    ctx.fillStyle = hexColor;
+    ctx.font = 'bold 26px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 80, 28);
+    const tex = new THREE.CanvasTexture(cv);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+    sp.scale.set(3.2, 1.1, 1);
+    return sp;
+  }
+
+  const s_types = [
+    { x: -20, housing: 0xff5500, ledColor: 0x00ff88, glowColor: 0x00ff88, wireColor: 0x00dd66, label: 'NPK', labelHex: '#ff6600' },
+    { x:   0, housing: 0xffcc00, ledColor: 0xffaa00, glowColor: 0xff8800, wireColor: 0xffaa00, label: 'EC',  labelHex: '#ffcc00' },
+    { x:  20, housing: 0x1166ff, ledColor: 0x00ddff, glowColor: 0x00aaff, wireColor: 0x2288ff, label: 'pH',  labelHex: '#4499ff' },
+  ];
+
+  // Shared geometries — large enough to spot from any camera angle
+  const s_poleGeo   = new THREE.CylinderGeometry(0.06, 0.08, 1.5, 8);   // pole (bottom at 0, top at 1.5)
+  const s_probeGeo  = new THREE.CylinderGeometry(0.04, 0.02, 0.5, 6);   // soil probe tip going into ground
+  const s_bodyGeo   = new THREE.BoxGeometry(0.32, 0.28, 0.22);           // sensor housing box
+  const s_ledGeo    = new THREE.SphereGeometry(0.09, 8, 8);              // LED dome
+  const s_glowGeo   = new THREE.SphereGeometry(0.14, 8, 8);              // glow halo (transparent)
+  const s_antGeo    = new THREE.CylinderGeometry(0.02, 0.02, 0.40, 5);   // antenna
+  const s_bandGeo   = new THREE.CylinderGeometry(0.09, 0.09, 0.06, 8);   // colour band on pole
+  const s_labelGeo  = new THREE.BoxGeometry(0.40, 0.18, 0.03);           // label plate
+
+  const s_poleMat   = new THREE.MeshLambertMaterial({ color: 0xeeeeee }); // white pole
+  const s_labelMat  = new THREE.MeshLambertMaterial({ color: 0x111111 }); // dark label
+
+  for (const sz of s_zones) {
+    for (const st of s_types) {
+      const housingMat = new THREE.MeshLambertMaterial({ color: st.housing });
+      const ledMat     = new THREE.MeshBasicMaterial({ color: st.ledColor });
+      const glowMat    = new THREE.MeshBasicMaterial({ color: st.glowColor, transparent: true, opacity: 0.35 });
+
+      const g = new THREE.Group();
+      g.position.set(st.x, 0, sz);
+
+      // Soil probe (goes into ground — tip starts at y=−0.25)
+      const probe = new THREE.Mesh(s_probeGeo, new THREE.MeshLambertMaterial({ color: 0x888888 }));
+      probe.position.y = -0.25 + 0.25; // centre at y=0
+      probe.castShadow = true;
+      g.add(probe);
+
+      // White pole (bottom at y=0, top at y=1.5 → centre at y=0.75)
+      const pole = new THREE.Mesh(s_poleGeo, s_poleMat);
+      pole.position.y = 0.75; pole.castShadow = true;
+      g.add(pole);
+
+      // Colour band at mid-pole
+      const band = new THREE.Mesh(s_bandGeo, housingMat);
+      band.position.y = 0.55;
+      g.add(band);
+
+      // Sensor housing box at top of pole
+      const body = new THREE.Mesh(s_bodyGeo, housingMat);
+      body.position.y = 1.64; body.castShadow = true;
+      g.add(body);
+
+      // LED dome on front of housing
+      const led = new THREE.Mesh(s_ledGeo, ledMat);
+      led.position.set(0, 1.64, 0.16);
+      g.add(led);
+
+      // Glow halo around LED
+      const glow = new THREE.Mesh(s_glowGeo, glowMat);
+      glow.position.set(0, 1.64, 0.16);
+      g.add(glow);
+
+      // Antenna on top
+      const ant = new THREE.Mesh(s_antGeo, s_poleMat);
+      ant.position.y = 1.98;
+      g.add(ant);
+
+      // Label plate facing forward (+Z)
+      const lbl = new THREE.Mesh(s_labelGeo, s_labelMat);
+      lbl.position.set(0, 1.50, 0.12);
+      g.add(lbl);
+
+      scene.add(g);
+
+      // Floating label sprite (always faces camera, stays visible)
+      const s_sprite = s_makeLabel(st.label, st.labelHex);
+      s_sprite.position.set(st.x, 3.0, sz);
+      scene.add(s_sprite);
+    }
+  }
+}
+
+// ─── Sensor Wires to Barn ────────────────────────────────────────────────────
+{
+  // Wires run at y=1.6 (just below sensor housing), supported by conduit posts
+  const WY = 1.55;
+  const BUS_Y = 1.65;
+
+  // Wire colours match each sensor type
+  const wireColors = [0x00dd66, 0xffaa00, 0x2288ff]; // NPK, EC, pH
+  const wireMats   = wireColors.map(c => new THREE.MeshLambertMaterial({ color: c }));
+  const busMat     = new THREE.MeshLambertMaterial({ color: 0xff4400 }); // bright orange bus
+
+  function wireSeg(x1, z1, x2, z2, y, mat, r = 0.06) {
+    const dx = x2 - x1, dz = z2 - z1;
+    const len = Math.sqrt(dx * dx + dz * dz);
+    if (len < 0.01) return;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 6), mat);
+    m.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+    if (Math.abs(dx) > Math.abs(dz)) m.rotation.z = Math.PI / 2;
+    else                              m.rotation.x = Math.PI / 2;
+    m.castShadow = true;
+    scene.add(m);
+  }
+
+  // Conduit post helper (small white post supporting wire at field edge)
+  function conduitPost(x, z, y) {
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.05, y, 6),
+      new THREE.MeshLambertMaterial({ color: 0xdddddd })
+    );
+    post.position.set(x, y / 2, z);
+    post.castShadow = true;
+    scene.add(post);
+  }
+
+  const sensorXs = [-20, 0, 20];
+
+  // Individual colour-coded wires: sensor housing → right field edge (x=49)
+  for (const sz of [-35, 0, 35]) {
+    for (let i = 0; i < sensorXs.length; i++) {
+      wireSeg(sensorXs[i], sz, 49, sz, WY, wireMats[i]);
+      conduitPost(49, sz, WY);          // post where each wire meets the bus
+    }
+  }
+
+  // Conduit posts along right fence every 10m
+  for (const sz of [-35, -25, -15, -5, 5, 15, 25, 35]) {
+    conduitPost(49, sz, BUS_Y);
+  }
+
+  // Orange bus cable along right fence (z: −35 → +35)
+  wireSeg(49, -35, 49, 35, BUS_Y, busMat, 0.09);
+
+  // Bus from fence to barn entrance
+  for (const bx of [52, 56, 59]) conduitPost(bx, 0, BUS_Y); // mid-span posts
+  wireSeg(49, 0, 62, 0, BUS_Y, busMat, 0.09);
+
+  // Inside barn: bus drops down to CPU table level
+  wireSeg(62, 0, 70, 0, BUS_Y, busMat, 0.07);
+  wireSeg(70, 0, 70, 6, BUS_Y, busMat, 0.07);
+
+  // Drop-down vertical from bus height to desk
+  const drop = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.06, BUS_Y - 0.94, 6),
+    busMat
+  );
+  drop.position.set(70, (BUS_Y + 0.94) / 2, 6);
+  scene.add(drop);
+}
+
+// ─── CPU Unit / Raspberry Pi (inside barn) ───────────────────────────────────
+{
+  const CPU_X = 70.5, CPU_Z = 6.5;
+
+  function cpuBox(w, h, d, color, x, y, z) {
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshLambertMaterial({ color })
+    );
+    m.position.set(x, y, z);
+    m.castShadow = true; m.receiveShadow = true;
+    scene.add(m); return m;
+  }
+
+  // Workbench tabletop
+  cpuBox(2.2, 0.08, 1.1, 0x9b7040, CPU_X, 0.94, CPU_Z);
+  // Legs
+  for (const [lx, lz] of [[-0.95,-0.44],[0.95,-0.44],[-0.95,0.44],[0.95,0.44]]) {
+    cpuBox(0.08, 0.9, 0.08, 0x5c3010, CPU_X+lx, 0.45, CPU_Z+lz);
+  }
+  // Lower shelf
+  cpuBox(2.0, 0.05, 0.9, 0x7a5028, CPU_X, 0.42, CPU_Z);
+
+  // Raspberry Pi (green PCB)
+  cpuBox(0.12, 0.04, 0.09, 0x228855, CPU_X-0.5, 1.00, CPU_Z-0.1);
+  cpuBox(0.05, 0.025, 0.04, 0x888888, CPU_X-0.5, 1.042, CPU_Z-0.1); // heatsink
+  // RPi GPIO header
+  cpuBox(0.06, 0.015, 0.02, 0x333333, CPU_X-0.5, 1.048, CPU_Z+0.02);
+
+  // Monitor
+  cpuBox(0.55, 0.34, 0.03, 0x111111, CPU_X+0.1, 1.28, CPU_Z-0.46); // bezel
+  cpuBox(0.49, 0.28, 0.01, 0x1a3a5c, CPU_X+0.1, 1.28, CPU_Z-0.45); // screen
+  cpuBox(0.04, 0.20, 0.04, 0x333333, CPU_X+0.1, 1.06, CPU_Z-0.46); // stand
+  cpuBox(0.18, 0.03, 0.12, 0x333333, CPU_X+0.1, 0.96, CPU_Z-0.46); // base
+
+  // Power strip
+  cpuBox(0.45, 0.04, 0.09, 0x222222, CPU_X-0.2, 0.998, CPU_Z+0.35);
+
+  // Status LEDs
+  const cpuLedColors = [0xff2222, 0x22ff66, 0xffaa00, 0x2288ff];
+  for (let i = 0; i < 4; i++) {
+    const led = new THREE.Mesh(
+      new THREE.SphereGeometry(0.015, 6, 6),
+      new THREE.MeshBasicMaterial({ color: cpuLedColors[i] })
+    );
+    led.position.set(CPU_X-0.36 + i*0.07, 1.028, CPU_Z-0.06);
+    scene.add(led);
+  }
+
+  // Cable conduit from desk to floor
+  const conduit = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6),
+    new THREE.MeshLambertMaterial({ color: 0x111111 })
+  );
+  conduit.position.set(CPU_X-0.4, 0.5, CPU_Z);
+  scene.add(conduit);
+}
+
+// ─── Pond ─────────────────────────────────────────────────────────────────────
+{
+  const PX = -78, PZ = 25, PW = 18, PD = 12;
+
+  // Water surface
+  const waterMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(PW, PD),
+    new THREE.MeshLambertMaterial({ color: 0x1a6e9a })
+  );
+  waterMesh.rotation.x = -Math.PI / 2;
+  waterMesh.position.set(PX, 0.02, PZ);
+  scene.add(waterMesh);
+
+  // Ripple layer
+  const ripple = new THREE.Mesh(
+    new THREE.PlaneGeometry(PW - 2.5, PD - 2.5),
+    new THREE.MeshLambertMaterial({ color: 0x2a8aaa, transparent: true, opacity: 0.5 })
+  );
+  ripple.rotation.x = -Math.PI / 2;
+  ripple.position.set(PX, 0.04, PZ);
+  scene.add(ripple);
+
+  // Earth banks around pond
+  const bankMat = new THREE.MeshLambertMaterial({ color: 0x5a3e1b });
+  const pondBanks = [
+    [PW+2.5, 0.28, 1.8, PX, 0.14, PZ-PD/2-0.9],
+    [PW+2.5, 0.28, 1.8, PX, 0.14, PZ+PD/2+0.9],
+    [1.8, 0.28, PD,     PX-PW/2-0.9, 0.14, PZ],
+    [1.8, 0.28, PD,     PX+PW/2+0.9, 0.14, PZ],
+  ];
+  for (const [bw,bh,bd,bx,by,bz] of pondBanks) {
+    const bm = new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd), bankMat);
+    bm.position.set(bx,by,bz); bm.receiveShadow = true; scene.add(bm);
+  }
+
+  // Reeds & cattails
+  const reedMat    = new THREE.MeshLambertMaterial({ color: 0x556b2f });
+  const cattailMat = new THREE.MeshLambertMaterial({ color: 0x8b5a14 });
+  const reedSpots  = [
+    [PX-7,PZ-4.5],[PX-5,PZ+5],[PX,PZ-6],[PX+7,PZ-4],
+    [PX+8,PZ+3],[PX-8,PZ+2],[PX+3,PZ+5.5],[PX-3,PZ-5.5],
+  ];
+  for (const [rx,rz] of reedSpots) {
+    const h = 1.2 + Math.random()*0.5;
+    const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.04,h,5), reedMat);
+    reed.position.set(rx, h/2+0.02, rz); scene.add(reed);
+    const top = new THREE.Mesh(new THREE.SphereGeometry(0.07,6,5), cattailMat);
+    top.position.set(rx, h+0.1, rz); scene.add(top);
+  }
+}
+
+// ─── Water Pipe System (full field + fertilizer loop) ────────────────────────
+{
+  const pipeMat  = new THREE.MeshLambertMaterial({ color: 0xdddddd }); // white main supply
+  const distMat  = new THREE.MeshLambertMaterial({ color: 0xbbbbbb }); // grey distribution
+  const fertMat  = new THREE.MeshLambertMaterial({ color: 0x44bb44 }); // green fertilizer
+  const junctMat = new THREE.MeshLambertMaterial({ color: 0xcccccc });
+
+  function makePipe(x1, z1, x2, z2, y = 0.18, r = 0.12, mat = pipeMat) {
+    const dx = x2 - x1, dz = z2 - z1;
+    const len = Math.sqrt(dx * dx + dz * dz);
+    if (len < 0.01) return;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), mat);
+    m.position.set((x1 + x2) / 2, y, (z1 + z2) / 2);
+    if (Math.abs(dx) > Math.abs(dz)) m.rotation.z = Math.PI / 2;
+    else                              m.rotation.x = Math.PI / 2;
+    m.castShadow = true; scene.add(m);
+  }
+
+  function pipeJoint(x, z, y = 0.18, r = 0.18, mat = junctMat) {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 8), mat);
+    m.position.set(x, y, z); scene.add(m);
+  }
+
+  // ── Pump motor helper ───────────────────────────────────────────────
+  function addPump(px, py, pz, ry = 0) {
+    const g = new THREE.Group();
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.08, 0.55),
+      new THREE.MeshLambertMaterial({ color: 0x666666 }));
+    base.position.y = 0.04; base.castShadow = true; g.add(base);
+    const motor = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.38, 0.42),
+      new THREE.MeshLambertMaterial({ color: 0x446688 }));
+    motor.position.set(-0.05, 0.27, 0); motor.castShadow = true; g.add(motor);
+    for (let f = 0; f < 4; f++) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.44, 0.46),
+        new THREE.MeshLambertMaterial({ color: 0x334466 }));
+      fin.position.set(-0.28 + f * 0.1, 0.27, 0); g.add(fin);
+    }
+    const imp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.3, 12),
+      new THREE.MeshLambertMaterial({ color: 0x223344 }));
+    imp.rotation.z = Math.PI / 2; imp.position.set(0.38, 0.22, 0);
+    imp.castShadow = true; g.add(imp);
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6),
+      new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
+    led.position.set(0.05, 0.495, 0.22); g.add(led);
+    const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.6, 5),
+      new THREE.MeshLambertMaterial({ color: 0x111111 }));
+    cable.position.set(-0.25, 0.56, 0.12); g.add(cable);
+    g.position.set(px, py, pz); g.rotation.y = ry;
+    scene.add(g);
+  }
+
+  // ── Left-side supply network (pond + big storage) — outside field ──
+  makePipe(-52, 2, -78, 2, 0.18, 0.13);
+  pipeJoint(-78, 2, 0.18, 0.20);
+  makePipe(-78, 2, -78, 25, 0.18, 0.12);   // → pond
+  pipeJoint(-78, 25, 0.18, 0.16);
+  makePipe(-78, 2, -78, -20, 0.18, 0.12);  // → big storage
+  pipeJoint(-78, -20, 0.18, 0.16);
+
+  // ── Full-field perimeter distribution ring (grey) ───────────────────
+  makePipe( 47, -48,  47,  48, 0.18, 0.09, distMat); // right header
+  makePipe(-47, -48, -47,  48, 0.18, 0.09, distMat); // left header
+  makePipe(-47, -48,  47, -48, 0.18, 0.09, distMat); // top cross
+  makePipe(-47,  48,  47,  48, 0.18, 0.09, distMat); // bottom cross
+  for (const [cx, cz] of [[-47,-48],[47,-48],[47,48],[-47,48]]) {
+    pipeJoint(cx, cz, 0.18, 0.13, distMat);
+  }
+
+  // Cross distribution pipes across full field every 12m
+  for (const rz of [-36, -24, -12, 0, 12, 24, 36]) {
+    makePipe(-47, rz, 47, rz, 0.18, 0.06, distMat);
+    pipeJoint(-47, rz, 0.18, 0.10, distMat);
+    pipeJoint( 47, rz, 0.18, 0.10, distMat);
+  }
+
+  // ── Pumps ───────────────────────────────────────────────────────────
+  addPump(-78, 0.05,  18,  Math.PI / 2);   // pond pump
+  addPump(-78, 0.05, -15, -Math.PI / 2);   // big-tank pump
+
+  // ── Big water storage (auto-mix control tank) ───────────────────────
+  const wsTank = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 6, 16),
+    new THREE.MeshLambertMaterial({ color: 0x4488aa }));
+  wsTank.position.set(-78, 3, -20); wsTank.castShadow = true; scene.add(wsTank);
+  const wsBand = new THREE.Mesh(new THREE.CylinderGeometry(3.1, 3.1, 0.3, 16, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0x336688 }));
+  wsBand.position.set(-78, 3.8, -20); scene.add(wsBand);
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * Math.PI * 2;
+    const wl = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.5, 0.2),
+      new THREE.MeshLambertMaterial({ color: 0x555555 }));
+    wl.position.set(-78 + Math.cos(ang) * 2.4, 1.25, -20 + Math.sin(ang) * 2.4);
+    wl.castShadow = true; scene.add(wl);
+  }
+  const wsSign = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.6, 0.06),
+    new THREE.MeshLambertMaterial({ color: 0x1a3366 }));
+  wsSign.position.set(-78, 3.7, -17); scene.add(wsSign);
+  const wsStub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.7, 8), pipeMat);
+  wsStub.position.set(-78, 6.35, -20); scene.add(wsStub);
+
+  // ── Medium fertilizer tank ──────────────────────────────────────────
+  const fertTank = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 4, 12),
+    new THREE.MeshLambertMaterial({ color: 0x228833 }));
+  fertTank.position.set(-78, 2, -33); fertTank.castShadow = true; scene.add(fertTank);
+  const fBand = new THREE.Mesh(new THREE.CylinderGeometry(2.08, 2.08, 0.25, 12, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0x115522 }));
+  fBand.position.set(-78, 2.8, -33); scene.add(fBand);
+  for (let i = 0; i < 4; i++) {
+    const ang = (i / 4) * Math.PI * 2;
+    const fl = new THREE.Mesh(new THREE.BoxGeometry(0.15, 2, 0.15),
+      new THREE.MeshLambertMaterial({ color: 0x555555 }));
+    fl.position.set(-78 + Math.cos(ang) * 1.8, 1.0, -33 + Math.sin(ang) * 1.8);
+    fl.castShadow = true; scene.add(fl);
+  }
+  const fSign = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.55, 0.06),
+    new THREE.MeshLambertMaterial({ color: 0x114411 }));
+  fSign.position.set(-78, 2.7, -31); scene.add(fSign);
+  const fStub = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.6, 8), fertMat);
+  fStub.position.set(-78, 4.3, -33); scene.add(fStub);
+
+  // ── Fertilizer pump beside green tank (pushes concentrate up and over) ──
+  addPump(-78, 0.05, -36, Math.PI);  // pump at south face of green tank
+
+  // ── Pipe: green tank top → overhead run → into top of blue tank ──────
+  // Helper for vertical pipe segments (CylinderGeometry is Y-axis by default)
+  function vertPipe(x, y1, y2, z, r = 0.10, mat = fertMat) {
+    const len = Math.abs(y2 - y1);
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), mat);
+    m.position.set(x, (y1 + y2) / 2, z);
+    m.castShadow = true; scene.add(m);
+  }
+
+  // 1. Riser: from green tank outlet (top y≈4.6) straight up to overhead height y=8.2
+  vertPipe(-78, 4.6, 8.2, -33);
+  pipeJoint(-78, -33, 8.2, 0.14, fertMat);  // elbow at top of riser
+
+  // 2. Overhead horizontal run at y=8.2 from green tank (z=-33) to above blue tank (z=-20)
+  makePipe(-78, -33, -78, -20, 8.2, 0.10, fertMat);
+  pipeJoint(-78, -20, 8.2, 0.14, fertMat);  // elbow above blue tank
+
+  // 3. Drop pipe: from y=8.2 straight down into blue tank inlet stub (y≈6.7)
+  vertPipe(-78, 6.7, 8.2, -20);
+
+}
+
+// ─── Lake ─────────────────────────────────────────────────────────────────────
+{
+  const LX = 0, LZ = 75, LW = 52, LD = 26;
+  const L_SOUTH = LZ - LD / 2; // = 62
+
+  // Water surface
+  const lakeWater = new THREE.Mesh(
+    new THREE.PlaneGeometry(LW, LD),
+    new THREE.MeshLambertMaterial({ color: 0x0d6b8a })
+  );
+  lakeWater.rotation.x = -Math.PI / 2;
+  lakeWater.position.set(LX, 0.02, LZ);
+  scene.add(lakeWater);
+
+  // Ripple/shimmer layer
+  const lakeRipple = new THREE.Mesh(
+    new THREE.PlaneGeometry(LW - 4, LD - 4),
+    new THREE.MeshLambertMaterial({ color: 0x1e90d0, transparent: true, opacity: 0.45 })
+  );
+  lakeRipple.rotation.x = -Math.PI / 2;
+  lakeRipple.position.set(LX, 0.04, LZ);
+  scene.add(lakeRipple);
+
+  // Second shimmer for depth
+  const lakeDeep = new THREE.Mesh(
+    new THREE.PlaneGeometry(LW - 12, LD - 8),
+    new THREE.MeshLambertMaterial({ color: 0x0a4a6a, transparent: true, opacity: 0.6 })
+  );
+  lakeDeep.rotation.x = -Math.PI / 2;
+  lakeDeep.position.set(LX, 0.06, LZ);
+  scene.add(lakeDeep);
+
+  // Earth banks (4 sides)
+  const lBankMat = new THREE.MeshLambertMaterial({ color: 0x5a3e1b });
+  for (const [bw, bh, bd, bx, bz] of [
+    [LW + 5, 0.35, 2.5, LX,          LZ - LD/2 - 1.25],
+    [LW + 5, 0.35, 2.5, LX,          LZ + LD/2 + 1.25],
+    [2.5,    0.35, LD,  LX - LW/2 - 1.25, LZ],
+    [2.5,    0.35, LD,  LX + LW/2 + 1.25, LZ],
+  ]) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), lBankMat);
+    b.position.set(bx, 0.17, bz); b.receiveShadow = true; scene.add(b);
+  }
+
+  // Reeds around lake edges
+  const lReedMat = new THREE.MeshLambertMaterial({ color: 0x556b2f });
+  const lCtMat   = new THREE.MeshLambertMaterial({ color: 0x8b5a14 });
+  const lakeReeds = [
+    [-22,LZ-11],[-14,LZ-12],[-5,LZ-12],[5,LZ-12],[14,LZ-12],[22,LZ-11],
+    [-20,LZ+11],[-10,LZ+12],[0,LZ+12],[10,LZ+12],[20,LZ+11],
+    [-LW/2+0.5,LZ-6],[-LW/2+0.5,LZ+4],
+    [ LW/2-0.5,LZ-8],[ LW/2-0.5,LZ+5],
+    [-18,LZ-8],[18,LZ-7],[-16,LZ+6],[16,LZ+7],
+  ];
+  for (const [rx, rz] of lakeReeds) {
+    const h = 1.5 + Math.random() * 0.7;
+    const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, h, 5), lReedMat);
+    reed.position.set(rx, h/2+0.02, rz); scene.add(reed);
+    const ct = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), lCtMat);
+    ct.position.set(rx, h+0.14, rz); scene.add(ct);
+  }
+
+  // Wooden dock/jetty extending north from south bank
+  const dockWood = new THREE.MeshLambertMaterial({ color: 0x8b6040 });
+  const dockPost = new THREE.MeshLambertMaterial({ color: 0x5a3a1a });
+  for (let i = 0; i < 7; i++) {
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.14, 0.45), dockWood);
+    plank.position.set(LX, 0.13, L_SOUTH + 0.3 + i * 0.55);
+    plank.castShadow = true; scene.add(plank);
+  }
+  for (const [dpx, dpz] of [
+    [LX-1.3, L_SOUTH+0.3], [LX+1.3, L_SOUTH+0.3],
+    [LX-1.3, L_SOUTH+2.1], [LX+1.3, L_SOUTH+2.1],
+    [LX-1.3, L_SOUTH+3.9], [LX+1.3, L_SOUTH+3.9],
+  ]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.10, 1.8, 6), dockPost);
+    post.position.set(dpx, 0.9, dpz); post.castShadow = true; scene.add(post);
+  }
+  // Dock railing
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x7a5030 });
+  for (const rx of [-1.3, 1.3]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 3.8), railMat);
+    rail.position.set(LX + rx, 1.5, L_SOUTH + 2.2); scene.add(rail);
+  }
+
+  // Pump house on south shore
+  const phWall = new THREE.MeshLambertMaterial({ color: 0x667788 });
+  const phRoof = new THREE.MeshLambertMaterial({ color: 0x445566 });
+  const phBody = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.8, 2.2), phWall);
+  phBody.position.set(LX - 6, 0.9, L_SOUTH - 2);
+  phBody.castShadow = true; scene.add(phBody);
+  const phRoofM = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.3, 2.4), phRoof);
+  phRoofM.position.set(LX - 6, 1.95, L_SOUTH - 2); scene.add(phRoofM);
+
+  // Lake pump (beside pump house, with pipe outlet)
+  const lpBody = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.42, 0.46),
+    new THREE.MeshLambertMaterial({ color: 0x2266aa }));
+  lpBody.position.set(LX - 4.2, 0.29, L_SOUTH - 1.5);
+  lpBody.castShadow = true; scene.add(lpBody);
+  const lpImp = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.32, 12),
+    new THREE.MeshLambertMaterial({ color: 0x112244 }));
+  lpImp.rotation.z = Math.PI / 2;
+  lpImp.position.set(LX - 3.8, 0.25, L_SOUTH - 1.5); scene.add(lpImp);
+  const lpLed = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6),
+    new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
+  lpLed.position.set(LX - 4.2, 0.54, L_SOUTH - 1.28); scene.add(lpLed);
+}
+
+// ─── Central Control Y-Junction ───────────────────────────────────────────────
+{
+  const JX = 0, JZ = 56;
+
+  const j_lakeMat  = new THREE.MeshLambertMaterial({ color: 0x2277cc }); // blue  = lake water
+  const j_fertMat  = new THREE.MeshLambertMaterial({ color: 0x44bb44 }); // green = fertilized
+  const j_outMat   = new THREE.MeshLambertMaterial({ color: 0xdddddd }); // white = output
+  const j_vMat     = new THREE.MeshLambertMaterial({ color: 0x778899 }); // valve body
+  const j_wMat     = new THREE.MeshLambertMaterial({ color: 0xcc4400 }); // handwheel
+  const j_isoMat   = new THREE.MeshLambertMaterial({ color: 0xffaa00 }); // isolation marker
+
+  function jPipe(x1, z1, x2, z2, y, r, mat) {
+    const dx = x2-x1, dz = z2-z1;
+    const len = Math.sqrt(dx*dx + dz*dz);
+    if (len < 0.01) return;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), mat);
+    m.position.set((x1+x2)/2, y, (z1+z2)/2);
+    if (Math.abs(dx) > Math.abs(dz)) m.rotation.z = Math.PI/2;
+    else                              m.rotation.x = Math.PI/2;
+    m.castShadow = true; scene.add(m);
+  }
+
+  // Gate valve (axis = 'z' or 'x')
+  function jGateValve(x, y, z, r, isOpen, axis = 'z') {
+    const g = new THREE.Group();
+    const fg = new THREE.CylinderGeometry(r + 0.14, r + 0.14, 0.09, 14);
+    for (const off of [-0.15, 0.15]) {
+      const f = new THREE.Mesh(fg, j_vMat);
+      if (axis === 'z') { f.rotation.x = Math.PI/2; f.position.z = off; }
+      else               { f.rotation.z = Math.PI/2; f.position.x = off; }
+      g.add(f);
+    }
+    const vbx = axis === 'x' ? 0.32 : r*2.8, vbz = axis === 'z' ? 0.32 : r*2.8;
+    const vBody = new THREE.Mesh(new THREE.BoxGeometry(vbx, r*2.8, vbz), j_vMat);
+    g.add(vBody);
+    // Stem
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.65, 6), j_vMat);
+    stem.position.y = 0.47; g.add(stem);
+    // Handwheel (torus)
+    const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.032, 6, 14), j_wMat);
+    wheel.position.y = 0.82; g.add(wheel);
+    // Cross spokes on wheel (2 bars)
+    for (let s = 0; s < 2; s++) {
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.03, 0.03), j_wMat);
+      spoke.rotation.z = s * Math.PI / 2;
+      spoke.position.y = 0.82; g.add(spoke);
+    }
+    // Status LED + glow
+    const col = isOpen ? 0x00ff44 : 0xff2222;
+    const led = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 8),
+      new THREE.MeshBasicMaterial({ color: col }));
+    led.position.set(r + 0.22, 0.1, 0); g.add(led);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8),
+      new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.28 }));
+    glow.position.set(r + 0.22, 0.1, 0); g.add(glow);
+    // Status plate (green=OPEN / red=CLOSED)
+    const plateMat = new THREE.MeshLambertMaterial({ color: isOpen ? 0x003300 : 0x330000 });
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.14, 0.04), plateMat);
+    plate.position.set(r + 0.22, 0.28, 0); g.add(plate);
+    g.position.set(x, y, z); scene.add(g);
+  }
+
+  // Check valve / backflow preventer (arrow points in allowed flow direction)
+  function jCheckValve(x, y, z, flowDir) { // flowDir: 'north'(-z), 'south'(+z), 'east'(+x)
+    const isZ = flowDir === 'north' || flowDir === 'south';
+    const body = new THREE.Mesh(new THREE.BoxGeometry(
+      flowDir === 'east' ? 0.4 : 0.32, 0.32, isZ ? 0.4 : 0.32), j_isoMat);
+    body.position.set(x, y, z); scene.add(body);
+    const cone = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.22, 0.35, 6),
+      new THREE.MeshLambertMaterial({ color: 0xffdd00 }));
+    if (flowDir === 'north')      { cone.rotation.x =  Math.PI/2; cone.position.set(x, y, z - 0.30); }
+    else if (flowDir === 'south') { cone.rotation.x = -Math.PI/2; cone.position.set(x, y, z + 0.30); }
+    else                          { cone.rotation.z = -Math.PI/2; cone.position.set(x + 0.30, y, z); }
+    scene.add(cone);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.025, 6, 12),
+      new THREE.MeshLambertMaterial({ color: 0xff4400 }));
+    ring.position.set(x, y + 0.30, z); scene.add(ring);
+  }
+
+  // ── Lake input pipe (BLUE) — from lake pump area to junction ───────────
+  // Lake south edge ≈ z=62; junction at z=56
+  jPipe(JX, 62, JX, JZ + 0.4, 0.18, 0.13, j_lakeMat);
+  jGateValve(JX, 0.18, 59.5, 0.13, true, 'z');   // OPEN — lake valve
+  jCheckValve(JX, 0.18, 57.8, 'north');           // check valve on lake line
+
+  // ── Fertilizer input pipe (GREEN) — routes AROUND the field perimeter ──────
+  // Segment 1: east from blue tank (-78, z=-20) to just outside left fence (x=-53)
+  jPipe(-78, -20, -53, -20, 0.18, 0.12, j_fertMat);
+  // Segment 2: south along outside of left fence (x=-53) down to bottom corner
+  jPipe(-53, -20, -53,  JZ, 0.18, 0.12, j_fertMat);
+  // Segment 3: east along outside of bottom fence to junction (0, 56)
+  jPipe(-53,  JZ,  JX,  JZ, 0.18, 0.12, j_fertMat);
+  // Corner joints
+  const jC1 = new THREE.Mesh(new THREE.SphereGeometry(0.16,8,8), j_fertMat);
+  jC1.position.set(-53, 0.18, -20); scene.add(jC1);
+  const jC2 = new THREE.Mesh(new THREE.SphereGeometry(0.16,8,8), j_fertMat);
+  jC2.position.set(-53, 0.18, JZ); scene.add(jC2);
+  // Gate valve (CLOSED) on bottom run, midway
+  jGateValve(-28, 0.18, JZ, 0.12, false, 'x');
+  // Check valve near junction entry — eastward flow only
+  jCheckValve(-8, 0.18, JZ, 'east');
+
+  // ── Junction node ────────────────────────────────────────────────────────
+  const jNode = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 10),
+    new THREE.MeshLambertMaterial({ color: 0x999999 }));
+  jNode.position.set(JX, 0.18, JZ); scene.add(jNode);
+
+  // ── Output pipe (WHITE) — junction → full crop field distribution ──────────
+  // Main run: junction (0,56) → bottom field header (0,48)
+  jPipe(JX, JZ, JX, 48, 0.18, 0.15, j_outMat);
+  // Branch east: along bottom header to right field entry (47,48)
+  jPipe(JX, 48, 47, 48, 0.18, 0.12, j_outMat);
+  // Branch west: along bottom header to left field entry (-47,48)
+  jPipe(JX, 48, -47, 48, 0.18, 0.12, j_outMat);
+  // Junction node at (0,48) where the three output branches meet
+  const jOutNode = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8),
+    new THREE.MeshLambertMaterial({ color: 0xcccccc }));
+  jOutNode.position.set(JX, 0.18, 48); scene.add(jOutNode);
+
+  // ── Control station housing ──────────────────────────────────────────────
+  const csHousing = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.0, 1.6),
+    new THREE.MeshLambertMaterial({ color: 0x2d3a4a }));
+  csHousing.position.set(JX + 3.5, 1.0, JZ); csHousing.castShadow = true; scene.add(csHousing);
+
+  // Control panel face (north-facing, visible to camera)
+  const csPanel = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.8, 0.06),
+    new THREE.MeshLambertMaterial({ color: 0x1a2535 }));
+  csPanel.position.set(JX + 3.5, 1.0, JZ - 0.83); scene.add(csPanel);
+
+  // Display screen
+  const csScrn = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.9, 0.04),
+    new THREE.MeshLambertMaterial({ color: 0x003322 }));
+  csScrn.position.set(JX + 3.5, 1.2, JZ - 0.85); scene.add(csScrn);
+
+  // Panel LEDs (status indicators)
+  const csLedColors = [0x00ff44, 0xff2222, 0xffaa00, 0x2288ff];
+  for (let i = 0; i < 4; i++) {
+    const csLed = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6),
+      new THREE.MeshBasicMaterial({ color: csLedColors[i] }));
+    csLed.position.set(JX + 2.2 + i * 0.38, 0.45, JZ - 0.87); scene.add(csLed);
+  }
+
+  // "TOTAL ISOLATION" label plate (red, above check valves)
+  const isoPlate = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.5, 0.07),
+    new THREE.MeshLambertMaterial({ color: 0x550000 }));
+  isoPlate.position.set(JX, 1.9, JZ - 0.04); scene.add(isoPlate);
+
+  // Antenna mast on housing
+  const antMast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.0, 5),
+    new THREE.MeshLambertMaterial({ color: 0xaaaaaa }));
+  antMast.position.set(JX + 4.9, 2.5, JZ); scene.add(antMast);
+
+  // Isolation zone pipe coatings (orange sleeve around each input near junction)
+  // Lake line isolation sleeve
+  const lkSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.6, 10, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0xff6600, transparent: true, opacity: 0.6 }));
+  lkSleeve.rotation.x = Math.PI/2;
+  lkSleeve.position.set(JX, 0.18, JZ + 0.7); scene.add(lkSleeve);
+  // Fert line isolation sleeve
+  const ftSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.6, 10, 1, true),
+    new THREE.MeshLambertMaterial({ color: 0xff6600, transparent: true, opacity: 0.6 }));
+  ftSleeve.rotation.z = Math.PI/2;
+  ftSleeve.position.set(JX - 0.7, 0.18, JZ); scene.add(ftSleeve);
+}
+
+// ─── Fog ──────────────────────────────────────────────────────────────────────
+scene.fog = new THREE.FogExp2(0xc8e8ff, 0.004);
+
+// ─── Season system ────────────────────────────────────────────────────────────
+const seasons = [
+  {
+    name: 'Spring',
+    sunElevation: 35,
+    sunAzimuth: 160,
+    leafColor: 0x55b830,
+    tomatoColor: 0x58c445,
+    fogColor: 0xd0eecc,
+    exposure: 0.75,
+    stage: 'Flowering',
+  },
+  {
+    name: 'Summer',
+    sunElevation: 65,
+    sunAzimuth: 180,
+    leafColor: 0x3a8c20,
+    tomatoColor: 0xe8281a,
+    fogColor: 0xc8e8ff,
+    exposure: 0.85,
+    stage: 'Fruiting',
+  },
+  {
+    name: 'Harvest',
+    sunElevation: 40,
+    sunAzimuth: 200,
+    leafColor: 0x6aab22,
+    tomatoColor: 0xcc2010,
+    fogColor: 0xffe8c0,
+    exposure: 0.78,
+    stage: 'Harvest Ready',
+  },
+  {
+    name: 'Late Season',
+    sunElevation: 20,
+    sunAzimuth: 210,
+    leafColor: 0x8a9c30,
+    tomatoColor: 0xaa4010,
+    fogColor: 0xddccbb,
+    exposure: 0.65,
+    stage: 'Post-Harvest',
+  },
+];
+
+let currentSeason = 1;
+
+function applySeason(s) {
+  leafMat.color.setHex(s.leafColor);
+  tomatoMat.color.setHex(s.tomatoColor);
+  scene.fog.color.setHex(s.fogColor);
+  renderer.toneMappingExposure = s.exposure;
+  setSun(s.sunElevation, s.sunAzimuth);
+  document.getElementById('season-name').textContent = s.name;
+  document.getElementById('stage').textContent = s.stage;
+}
+
+window.toggleCrops = function () {
+  const show = !stemMesh.visible;
+  stemMesh.visible  = show;
+  leafMesh.visible  = show;
+  tomatoMesh.visible = show;
+  const btn = document.getElementById('crop-btn');
+  btn.textContent = show ? 'Hide Crops' : 'Show Crops';
+  btn.style.background = show
+    ? 'rgba(34,139,34,0.85)'
+    : 'rgba(180,50,50,0.85)';
+  document.getElementById('crop-status').textContent = show ? 'Visible' : 'Hidden';
+};
+
+window.cycleSeason = function () {
+  currentSeason = (currentSeason + 1) % seasons.length;
+  applySeason(seasons[currentSeason]);
+};
+
+applySeason(seasons[currentSeason]);
+
+// ─── Resize handler ───────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ─── Sensor data live animation ──────────────────────────────────────────────
+(function startSensorAnimation() {
+  function jitter(base, range, dec) {
+    return (base + (Math.random() - 0.5) * range).toFixed(dec);
+  }
+  function tick() {
+    document.getElementById('s-n').textContent    = jitter(45, 6, 0) + ' ppm';
+    document.getElementById('s-p').textContent    = jitter(28, 4, 0) + ' ppm';
+    document.getElementById('s-k').textContent    = jitter(62, 8, 0) + ' ppm';
+    document.getElementById('s-ec').textContent   = jitter(2.1, 0.3, 2) + ' mS/cm';
+    document.getElementById('s-temp').textContent = jitter(24.3, 1.2, 1) + ' °C';
+    const ph = parseFloat(jitter(6.8, 0.25, 2));
+    document.getElementById('s-ph').textContent = ph.toFixed(2);
+    const stEl = document.getElementById('s-status');
+    if (ph >= 6.5 && ph <= 7.2) {
+      stEl.textContent = 'Optimal'; stEl.style.color = '#00ff88';
+    } else {
+      stEl.textContent = 'Adjust!'; stEl.style.color = '#ff4444';
+    }
+  }
+  tick();
+  setInterval(tick, 2500);
+})();
+
+// ─── Animation loop ───────────────────────────────────────────────────────────
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
