@@ -219,6 +219,26 @@ function setSun(elevation, azimuth) {
   dirLight.position.copy(sun).multiplyScalar(200);
 }
 
+// ─── Floating tag helper ──────────────────────────────────────────────────────
+function makeTag(text, x, y, z, w = 7, h = 1.3, border = '#ff9900', textColor = '#ffffff') {
+  const cv = document.createElement('canvas');
+  cv.width = 320; cv.height = 72;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = 'rgba(0,0,0,0.86)';
+  ctx.beginPath(); ctx.roundRect(2, 2, 316, 68, 10); ctx.fill();
+  ctx.strokeStyle = border; ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.roundRect(4, 4, 312, 64, 8); ctx.stroke();
+  ctx.fillStyle = textColor;
+  ctx.font = 'bold 22px Arial';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 160, 36);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true }));
+  sp.scale.set(w, h, 1);
+  sp.position.set(x, y, z);
+  scene.add(sp);
+  return sp;
+}
+
 // ─── Lighting ─────────────────────────────────────────────────────────────────
 const ambientLight = new THREE.AmbientLight(0xfff8e7, 0.5);
 scene.add(ambientLight);
@@ -946,8 +966,6 @@ scene.add(road);
   const wsSign = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.6, 0.06),
     new THREE.MeshLambertMaterial({ color: 0x1a3366 }));
   wsSign.position.set(-78, 3.7, -17); scene.add(wsSign);
-  const wsStub = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.7, 8), pipeMat);
-  wsStub.position.set(-78, 6.35, -20); scene.add(wsStub);
 
   // ── Medium fertilizer tank ──────────────────────────────────────────
   const fertTank = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 4, 12),
@@ -1266,6 +1284,16 @@ scene.add(road);
   ftSleeve.rotation.z = Math.PI/2;
   ftSleeve.position.set(JX - 0.7, 0.18, JZ); scene.add(ftSleeve);
 }
+
+// ─── Scene Tags ───────────────────────────────────────────────────────────────
+// Farm House / Central Control — floating above barn roof (BX=73, peak y≈12.5)
+makeTag('Farm House  |  Central Control', 73, 17, 0, 11, 1.4, '#f97316', '#ffd580');
+// SEN 15901 — on barn entrance sign post (sign board at x=63.25, y=4.3, z=-9.5)
+makeTag('SEN 15901', 63.25, 5.6, -9.5, 5.5, 1.0, '#dddddd', '#ffffff');
+// Fertilizer tank — green tank top at y≈4, label floats at y=7
+makeTag('Fertilizer Tank', -78, 7.2, -33, 7.5, 1.1, '#44bb44', '#a8ffb8');
+// Mixing / auto-mix tank — blue tank, overhead pipes at y=8.2, label at y=11
+makeTag('Mixing Tank  (Auto-Mix)', -78, 11.5, -20, 8.5, 1.1, '#4488aa', '#b8e4ff');
 
 // ─── Fog ──────────────────────────────────────────────────────────────────────
 scene.fog = new THREE.FogExp2(0xc8e8ff, 0.004);
